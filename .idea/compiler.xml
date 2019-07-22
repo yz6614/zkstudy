@@ -9,5 +9,8 @@
         <module name="zkstudy" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="zkstudy" target="8" />
+    </bytecodeTargetLevel>
   </component>
 </project>
