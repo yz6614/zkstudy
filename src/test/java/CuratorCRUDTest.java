@@ -23,20 +23,20 @@ import java.util.List;
 import java.util.concurrent.*;
 
 
-public class CuratorCUIDTest {
+public class CuratorCRUDTest {
     /**
      * 创建数据节点*/
     @Test
     public void createZnodeWithCuratorTest() throws Exception {
         CuratorFramework client = getClient();
         //创建一个空数据内容的节点
-//		client.create().forPath("/path_ep");
+//		client.create().forPath("/path_ep1");
 
         //创建一个数据内容为"init_string"的节点
 //		client.create().forPath("/path_init","init_string".getBytes());
 
         //创建一个空数据内容临时节点
-//		client.create().withMode(CreateMode.EPHEMERAL).forPath("/path_tmp_ep");
+		client.create().withMode(CreateMode.EPHEMERAL).forPath("/path_tmp_ep");
         //创建临时节点需要用下面这句，否则无法看到节点创建
 //		Thread.sleep(10000);
 
@@ -48,10 +48,10 @@ public class CuratorCUIDTest {
 //		//这个creatingParentContainersIfNeeded()接口非常有用，
 //		//因为一般情况开发人员在创建一个子节点必须判断它的父节点是否存在，如果不存在直接创建会抛出NoNodeException
 //		//使用creatingParentContainersIfNeeded()之后Curator能够自动递归创建所有所需的父节点。
-        client.create()
-                .creatingParentContainersIfNeeded()
-                .withMode(CreateMode.EPHEMERAL)
-                .forPath("/path_tmp_init_pn","init".getBytes());
+//        client.create()
+//                .creatingParentContainersIfNeeded()
+//                .withMode(CreateMode.EPHEMERAL)
+//                .forPath("/path_tmp_init_pn","init".getBytes());
         Thread.sleep(10000);
 
         System.out.println("Successfully created a node.");
