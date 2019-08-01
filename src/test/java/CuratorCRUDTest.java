@@ -23,20 +23,37 @@ import java.util.List;
 import java.util.concurrent.*;
 
 
-public class CuratorCRUDTest {
+public class CuratorCUIDTest {
+
+    private static CuratorFramework getClient(){
+        RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
+
+        String connectionInfo = "168.2.4.56:2181,168.2.4.57:2181,168.2.4.58:2181" ;
+        CuratorFramework client =
+                CuratorFrameworkFactory.builder()
+                        .connectString(connectionInfo)
+                        .sessionTimeoutMs(5000)
+                        .connectionTimeoutMs(5000)
+                        .retryPolicy(retryPolicy)
+                        .namespace("wls")
+                        .build();
+        client.start();
+        return client;
+    }
+
     /**
      * 创建数据节点*/
     @Test
     public void createZnodeWithCuratorTest() throws Exception {
         CuratorFramework client = getClient();
         //创建一个空数据内容的节点
-//		client.create().forPath("/path_ep1");
+//		client.create().forPath("/path_ep");
 
         //创建一个数据内容为"init_string"的节点
 //		client.create().forPath("/path_init","init_string".getBytes());
 
         //创建一个空数据内容临时节点
-		client.create().withMode(CreateMode.EPHEMERAL).forPath("/path_tmp_ep");
+//		client.create().withMode(CreateMode.EPHEMERAL).forPath("/path_tmp_ep");
         //创建临时节点需要用下面这句，否则无法看到节点创建
 //		Thread.sleep(10000);
 
@@ -48,11 +65,11 @@ public class CuratorCRUDTest {
 //		//这个creatingParentContainersIfNeeded()接口非常有用，
 //		//因为一般情况开发人员在创建一个子节点必须判断它的父节点是否存在，如果不存在直接创建会抛出NoNodeException
 //		//使用creatingParentContainersIfNeeded()之后Curator能够自动递归创建所有所需的父节点。
-//        client.create()
-//                .creatingParentContainersIfNeeded()
-//                .withMode(CreateMode.EPHEMERAL)
-//                .forPath("/path_tmp_init_pn","init".getBytes());
-        Thread.sleep(10000);
+        client.create()
+                .creatingParentContainersIfNeeded()
+                .withMode(CreateMode.EPHEMERAL)
+                .forPath("/zyl-test1","init".getBytes());
+        Thread.sleep(5000);
 
         System.out.println("Successfully created a node.");
     }
@@ -138,8 +155,10 @@ public class CuratorCRUDTest {
     @Test
     public void inTransactionWithCuratorTest() throws Exception {
         CuratorFramework client = getClient();
-//        CuratorFramework的实例包含inTransaction( )接口方法，调用此方法开启一个ZooKeeper事务. 可以复合create, setData, check, and/or delete 等操作然后调用commit()作为一个原子操作提交。一个例子如下：
-        client.inTransaction().check().forPath("/path_init")
+//        CuratorFramework的实例包含inTransaction( )接口方法，调用此方法开启一个ZooKeeper事务.
+//        可以复合create, setData, check, and/or delete 等操作然后调用commit()作为一个原子操作提交。一个例子如下：
+        client.inTransaction()
+                .check().forPath("/path_init")
                 .and()
                 .create().withMode(CreateMode.EPHEMERAL).forPath("/path_init/path","data".getBytes())
                 .and()
@@ -161,47 +180,35 @@ public class CuratorCRUDTest {
 
         System.out.println("Main thread: " + Thread.currentThread().getName());
         // 此处传入了自定义的Executor
-        client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).inBackground(new BackgroundCallback() {
-            public void processResult(CuratorFramework client, CuratorEvent event){
-                System.out.println("event[code: " + event.getResultCode() + ", type: " + event.getType() + "]");
-                System.out.println("Thread of processResult: " + Thread.currentThread().getName());
-                semaphore.countDown();
-            }
-        }, tp).forPath(path, "init".getBytes());
+        client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL)
+                .inBackground((client1, event) -> {
+                    System.out.println("event[code: " + event.getResultCode() + ", type: " + event.getType() + "]");
+                    System.out.println("Thread of processResult: " + Thread.currentThread().getName());
+                    semaphore.countDown();
+                }, tp)
+                .forPath(path, "init".getBytes());
         // 此处没有传入自定义的Executor
-        client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).inBackground(new BackgroundCallback() {
-            public void processResult(CuratorFramework client, CuratorEvent event){
-                System.out.println("event[code: " + event.getResultCode() + ", type: " + event.getType() + "]");
-                System.out.println("Thread of processResult: " + Thread.currentThread().getName());
-                semaphore.countDown();
-            }
-        }).forPath(path, "init".getBytes());
+        client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL)
+                .inBackground((client12, event) -> {
+                    System.out.println("event[code: " + event.getResultCode() + ", type: " + event.getType() + "]");
+                    System.out.println("Thread of processResult: " + Thread.currentThread().getName());
+                    semaphore.countDown();
+                })
+                .forPath(path, "init".getBytes());
         semaphore.await();
         tp.shutdown();
         Thread.sleep(10000);
     }
 
-    private static CuratorFramework getClient(){
-        RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
 
-        String connectionInfo = "168.2.4.56:2181,168.2.4.57:2181,168.2.4.58:2181" ;
-        CuratorFramework client =
-                CuratorFrameworkFactory.builder()
-                        .connectString(connectionInfo)
-                        .sessionTimeoutMs(5000)
-                        .connectionTimeoutMs(5000)
-                        .retryPolicy(retryPolicy)
-                        .namespace("wls_curator_test")
-                        .build();
-        client.start();
-        return client;
-    }
 
     /**
      * 缓存 pathCacheTest
-     * 注意：如果new PathChildrenCache(client, PATH, true)中的参数cacheData值设置为false，则示例中的event.getData().getData()、data.getData()将返回null，cache将不会缓存节点数据。
+     * 注意：如果new PathChildrenCache(client, PATH, true)中的参数cacheData值设置为false，
+     * 则示例中的event.getData().getData()、data.getData()将返回null，cache将不会缓存节点数据。
      *
-     * 注意：示例中的Thread.sleep(10)可以注释掉，但是注释后事件监听的触发次数会不全，这可能与PathCache的实现原理有关，不能太过频繁的触发事件！*/
+     * 注意：示例中的Thread.sleep(10)可以注释掉，但是注释后事件监听的触发次数会不全，
+     * 这可能与PathCache的实现原理有关，不能太过频繁的触发事件！*/
     @Test
     public void pathCacheTest() throws Exception {
         String PATH = "/wls_curator_test/pathCache";
@@ -313,7 +320,8 @@ public class CuratorCRUDTest {
     /**
      * leader选举
      * Curator 有两种leader选举的recipe,分别是LeaderLatch和LeaderSelector
-     * 前者是一旦选举出Leader，除非有客户端挂掉重新触发选举，否则不会交出领导权。后者是所有存活的客户端不间断的轮流做Leader，大同社会。
+     * 前者是一旦选举出Leader，除非有客户端挂掉重新触发选举，否则不会交出领导权。
+     * 后者是所有存活的客户端不间断的轮流做Leader，大同社会。
      * 对比可知，LeaderLatch必须调用close()方法才会释放领导权，而对于LeaderSelector，通过LeaderSelectorListener可以对领导权进行控制，在适当的时候释放领导权，这样每个节点都有可能获得领导权。
      * 从而，LeaderSelector具有更好的灵活性和可控性，建议有LeaderElection应用场景下优先使用LeaderSelector。
      *
@@ -323,7 +331,8 @@ public class CuratorCRUDTest {
      *    LeaderLatch用户必须考虑导致leadership丢失的连接问题。
      *    强烈推荐使用ConnectionStateListener。
      *
-     * 首先我们创建了10个LeaderLatch，启动后它们中的一个会被选举为leader。 因为选举会花费一些时间，start后并不能马上就得到leader。
+     * 首先我们创建了10个LeaderLatch，启动后它们中的一个会被选举为leader。
+     * 因为选举会花费一些时间，start后并不能马上就得到leader。
      * 通过hasLeadership查看自己是否是leader， 如果是的话返回true。
      * 可以通过.getLeader().getId()可以得到当前的leader的ID。
      * 只能通过close释放当前的领导权。
@@ -531,7 +540,9 @@ public class CuratorCRUDTest {
      * 不可重入共享锁—Shared Lock
      * 这个锁和上面的InterProcessMutex相比，就是少了Reentrant的功能，也就意味着它不能在同一个线程中重入。
      * 这个类是InterProcessSemaphoreMutex,使用方法和InterProcessMutex类似
-     * 运行后发现，有且只有一个client成功获取第一个锁(第一个acquire()方法返回true)，然后它自己阻塞在第二个acquire()方法，获取第二个锁超时；其他所有的客户端都阻塞在第一个acquire()方法超时并且抛出异常。
+     * 运行后发现，有且只有一个client成功获取第一个锁(第一个acquire()方法返回true)，
+     * 然后它自己阻塞在第二个acquire()方法，
+     * 获取第二个锁超时；其他所有的客户端都阻塞在第一个acquire()方法超时并且抛出异常。
      * 这样也就验证了InterProcessSemaphoreMutex实现的锁是不可重入的。*/
     @Test
     public void InterProcessSemaphoreMutexTest() throws Exception {
