@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.concurrent.*;
 
 
-public class CuratorCUIDTest {
+public class CuratorCRUDTest {
 
     private static CuratorFramework getClient(){
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
