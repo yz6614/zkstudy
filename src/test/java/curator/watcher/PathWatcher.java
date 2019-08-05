@@ -5,6 +5,7 @@ import org.apache.curator.framework.recipes.cache.*;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent.Type;
 import org.apache.zookeeper.CreateMode;
 import org.junit.Test;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -55,13 +56,15 @@ public class PathWatcher extends BaseWather implements Callable<PathChildrenCach
 
     @Override
     public PathChildrenCache call() throws Exception {
-        this.pathChildrenCache = new PathChildrenCache(this.client, new StringBuffer().append(ROOTPATH).append(PATHWATCHERPATH).toString(), true);
-        this.pathChildrenCache.getListenable().addListener((client, event) -> {
+        PathChildrenCache  pathChildrenCache = new PathChildrenCache(this.client, new StringBuffer().append(ROOTPATH).append(PATHWATCHERPATH).toString(), true);
+        pathChildrenCache.getListenable().addListener((client, event) -> {
             String eventType = "";
             boolean eventTriger = true;
             if (Type.CHILD_ADDED.equals(event.getType())) {
                 eventType = Type.CHILD_ADDED.toString();
             } else if (Type.CHILD_REMOVED.equals(event.getType())) {
+                eventType = Type.CHILD_REMOVED.toString();
+            } else if (Type.CHILD_UPDATED.equals(event.getType())) {
                 eventType = Type.CHILD_REMOVED.toString();
             } else {
                 eventTriger = false;
@@ -77,12 +80,13 @@ public class PathWatcher extends BaseWather implements Callable<PathChildrenCach
         });
         try {
             System.out.println("\n\n ===========  建立监听  ==============");
-            this.pathChildrenCache.start();
+            pathChildrenCache.start();
             getCountDownLatch().countDown();
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             e.printStackTrace();
         }
-        return this.pathChildrenCache;
+        return pathChildrenCache;
     }
 
 

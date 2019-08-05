@@ -68,10 +68,10 @@ public class NodeWather extends BaseWather implements Callable<NodeCache> {
 
     @Override
     public NodeCache call() throws Exception {
-        this.nodeCache = new NodeCache(this.client, new StringBuffer()
+        NodeCache nodeCache = new NodeCache(this.client, new StringBuffer()
                 .append(getROOTPATH()).append(NODEWATCHERPATH).toString());
 
-        this.nodeCache.getListenable().addListener(() -> {
+        nodeCache.getListenable().addListener(() -> {
             ChildData data = this.nodeCache.getCurrentData();
             if (null != data) {
                 System.out.println("UpData 节点数据：" + new String(this.nodeCache.getCurrentData().getData()));
@@ -79,8 +79,8 @@ public class NodeWather extends BaseWather implements Callable<NodeCache> {
                 System.out.println("DeleteDate 节点被删除!");
             }
         });
-        this.nodeCache.start();
+        nodeCache.start();
         getCountDownLatch().countDown();
-        return this.nodeCache;
+        return nodeCache;
     }
 }

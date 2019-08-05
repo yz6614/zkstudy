@@ -8,6 +8,7 @@
     <artifactId>zkstudy</artifactId>
     <version>1.0-SNAPSHOT</version>
     <properties>
+        <guava.version>18.0</guava.version>
         <curator.version>4.0.1</curator.version>
         <zookeeper.version>3.4.6</zookeeper.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -45,6 +46,11 @@
             <version>${zookeeper.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
 
     </dependencies>
 </project>
